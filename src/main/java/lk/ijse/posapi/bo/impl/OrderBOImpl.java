@@ -2,6 +2,7 @@ package lk.ijse.posapi.bo.impl;
 
 import lk.ijse.posapi.bo.custom.OrderBO;
 import lk.ijse.posapi.dao.DAOFactory;
+import lk.ijse.posapi.dao.custom.ItemDAO;
 import lk.ijse.posapi.dao.custom.OrderDAO;
 import lk.ijse.posapi.dao.custom.OrderDetailDAO;
 import lk.ijse.posapi.dto.OrderDTO;
@@ -16,6 +17,7 @@ import java.util.List;
 public class OrderBOImpl implements OrderBO {
     OrderDAO orderDAO = (OrderDAO) DAOFactory.getDaoFactory().getDao(DAOFactory.DAOTypes.ORDER);
     OrderDetailDAO orderDetailDAO = (OrderDetailDAO) DAOFactory.getDaoFactory().getDao(DAOFactory.DAOTypes.ORDER_DETAIL);
+    ItemDAO itemDAO = (ItemDAO) DAOFactory.getDaoFactory().getDao(DAOFactory.DAOTypes.ITEM);
     @Override
     public boolean placeOrder(OrderDTO orderDTO, List<OrderDetailDTO> orderDetailDTOs, Connection connection) throws SQLException {
         try {
@@ -36,6 +38,14 @@ public class OrderBOImpl implements OrderBO {
                         new OrderDetail(orderDetail.getOrderId(),orderDetail.getItemCode(),orderDetail.getOrderQty(),orderDetail.getUnitPrice()),
                         connection);
                 if (!orderDetailSaved) {
+                    connection.rollback();
+                    return false;
+                }
+
+                //Update Item Quantity
+                boolean itemQuantityUpdated = itemDAO.updateQuantity(orderDetail.getItemCode(),
+                        orderDetail.getOrderQty(),connection);
+                if(!itemQuantityUpdated){
                     connection.rollback();
                     return false;
                 }
